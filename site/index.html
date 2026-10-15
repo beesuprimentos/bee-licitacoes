@@ -163,7 +163,6 @@ main{padding:16px;padding-bottom:calc(28px + env(safe-area-inset-bottom,0px))}
 .bar .tr i{display:block;height:100%;border-radius:6px;background:var(--ink)}
 .bar .vl{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
 .bar .vl b{color:var(--ink)}
-.bars.av .bar{grid-template-columns:96px 1fr auto}.bars.av .vl{white-space:nowrap;display:flex;gap:6px;align-items:center;justify-content:flex-end}
 @media (max-width:480px){.bar{grid-template-columns:92px 1fr 104px}}
 
 /* ---------- equipe / historico ---------- */
@@ -1326,10 +1325,10 @@ function renderAval(){
     PRATICAS.map(function(p,i){var k='p'+(i+1), v=d.notas[k];
       return '<tr><td class="ct">'+esc(p[0])+'</td><td>'+esc(p[1])+'</td><td><div class="seg nota">'+[0,1,2].map(function(x){return '<button data-x="nota" data-k="'+k+'" data-v="'+x+'" aria-pressed="'+(v===x)+'"'+(ed?'':' disabled')+'>'+x+'</button>'}).join('')+'</div></td>'+
         '<td><input data-xd="avobs" data-k="'+k+'" id="ao-'+k+'" value="'+esc(d.obs[k]||'')+'"'+(ed?'':' disabled')+' style="min-width:140px">'+(ed&&v!=null&&v<2&&nv('conversas')>=2?' <button class="btn small ghost" data-x="avtask" data-i="'+i+'" title="Criar tarefa pessoal">+ tarefa</button>':'')+'</td></tr>'}).join('')+
-    '</tbody></table></div>'+(ed?'<div style="display:flex;gap:8px;margin-top:12px;align-items:center"><span class="ct">'+n+' de '+PRATICAS.length+' respondidas</span><span class="sp" style="flex:1"></span><button class="btn pri" data-x="avsave"'+(n?'':' disabled')+'>Salvar avaliação</button></div>':'')+'</section>';
-  h+='<section class="panel"><h2>Suas avaliações</h2><p class="sub">Acompanhe a evolução da nota.</p>'+(S.aval.length?'<div class="bars av">'+S.aval.map(function(a){
+    '</tbody></table></div>'+(ed?'<div style="display:flex;gap:8px;margin-top:12px;align-items:center"><span class="ct">'+n+' de '+PRATICAS.length+' respondidas</span><span class="sp" style="flex:1"></span>'+(S.avOpen?(S.avDel?'<span class="ct" style="color:var(--bad)">Apagar a avaliação aberta?</span><button class="btn danger" data-x="avdelyes">Sim, apagar</button><button class="btn ghost" data-x="avdelno">Cancelar</button>':'<button class="btn ghost danger" data-x="avdel">Apagar esta avaliação</button>'):'')+'<button class="btn pri" data-x="avsave"'+(n?'':' disabled')+'>Salvar avaliação</button></div>':'')+'</section>';
+  h+='<section class="panel"><h2>Suas avaliações</h2><p class="sub">Acompanhe a evolução da nota.</p>'+(S.aval.length?'<div class="bars">'+S.aval.map(function(a){
     var t=0;Object.keys(a.notas||{}).forEach(function(k){t+=+a.notas[k]||0});
-    return '<div class="bar"><span class="lb">'+esc(fmtAt(a.criado).slice(0,5))+'/'+esc(String(a.criado).slice(0,4))+'</span><span class="tr"><i style="width:'+Math.round(t/30*100)+'%;background:'+(t>=20?'var(--ok)':'var(--e3)')+'"></i></span><span class="vl"><b>'+t+'</b>/30 <button class="btn small ghost" data-x="avload" data-id="'+esc(a.id)+'" title="Usar como ponto de partida">Abrir</button>'+(S.avDel===a.id?' <button class="btn small danger" data-x="avdelyes" data-id="'+esc(a.id)+'">Apagar?</button><button class="btn small ghost" data-x="avdelno">Não</button>':' <button class="btn small ghost danger" data-x="avdel" data-id="'+esc(a.id)+'" title="Apagar avaliação" aria-label="Apagar avaliação">×</button>')+'</span></div>'}).join('')+'</div>':'<div class="empty" style="text-align:left;padding:0">Nenhuma avaliação salva ainda.</div>')+'</section></div>';
+    return '<div class="bar"><span class="lb">'+esc(fmtAt(a.criado).slice(0,5))+'/'+esc(String(a.criado).slice(0,4))+'</span><span class="tr"><i style="width:'+Math.round(t/30*100)+'%;background:'+(t>=20?'var(--ok)':'var(--e3)')+'"></i></span><span class="vl"><b>'+t+'</b>/30 <button class="btn small ghost" data-x="avload" data-id="'+esc(a.id)+'" title="Usar como ponto de partida">Abrir</button></span></div>'}).join('')+'</div>':'<div class="empty" style="text-align:left;padding:0">Nenhuma avaliação salva ainda.</div>')+'</section></div>';
   return h;
 }
 
@@ -1404,21 +1403,22 @@ document.addEventListener('click',function(e){
   if(x==='nota'){S.avDraft.notas[a.dataset.k]=+a.dataset.v;renderMain();return}
   if(x==='avsave'){
     var dr=S.avDraft;
-    w(S.sb.from('autoavaliacoes').insert({usuario_id:meId(),notas:dr.notas,obs:dr.obs}),'Autoavaliação salva.').then(loadAval).then(function(){S.avDraft={notas:{},obs:{}};renderMain()}).catch(function(){});
+    w(S.sb.from('autoavaliacoes').insert({usuario_id:meId(),notas:dr.notas,obs:dr.obs}),'Autoavaliação salva.').then(loadAval).then(function(){S.avDraft={notas:{},obs:{}};S.avOpen=null;S.avDel=false;renderMain()}).catch(function(){});
     return;
   }
-  if(x==='avdel'){S.avDel=a.dataset.id;renderMain();return}
-  if(x==='avdelno'){S.avDel=null;renderMain();return}
+  if(x==='avdel'){S.avDel=true;renderMain();return}
+  if(x==='avdelno'){S.avDel=false;renderMain();return}
   if(x==='avdelyes'){
-    var avid=a.dataset.id; a.disabled=true;
+    var avid=S.avOpen; if(!avid) return; a.disabled=true;
     guard(S.sb.from('autoavaliacoes').delete().eq('id',avid).select('id')).then(function(r){
-      S.avDel=null;
+      S.avDel=false;
       if(!r||!r.data||!r.data.length){toast('A avaliação não foi apagada.');renderMain();return}
+      S.avOpen=null;S.avDraft={notas:{},obs:{}};
       toast('Avaliação apagada.');return loadAval().then(renderMain);
-    }).catch(function(){S.avDel=null;renderMain()});
+    }).catch(function(){S.avDel=false;renderMain()});
     return;
   }
-  if(x==='avload'){var av=S.aval.filter(function(q){return q.id===a.dataset.id})[0];if(av){S.avDraft={notas:Object.assign({},av.notas||{}),obs:Object.assign({},av.obs||{})};renderMain();toast('Avaliação carregada. Ajuste e salve uma nova.')}return}
+  if(x==='avload'){var av=S.aval.filter(function(q){return q.id===a.dataset.id})[0];if(av){S.avOpen=av.id;S.avDel=false;S.avDraft={notas:Object.assign({},av.notas||{}),obs:Object.assign({},av.obs||{})};renderMain();toast('Avaliação carregada. Ajuste e salve uma nova.')}return}
   if(x==='avtask'){
     var p=PRATICAS[+a.dataset.i];
     w(S.sb.from('tarefas').insert({titulo:'Melhorar: '+p[1],para_id:meId(),criado_por:meId(),privada:true}),'Tarefa pessoal criada em Conversas > Tarefas.').then(loadTarefas).then(render).catch(function(){});
