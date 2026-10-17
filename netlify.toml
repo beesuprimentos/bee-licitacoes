@@ -1,0 +1,27 @@
+[build]
+  publish = "site"
+  functions = "netlify/functions"
+
+# Lembretes de disputa (24 h e 1 h antes). Horário em UTC; roda a cada 15 minutos.
+[functions."lembretes"]
+  schedule = "*/15 * * * *"
+
+# Alertas de contratos sem pedido, parados ou com vigência acabando.
+# Todo dia às 11:00 UTC (08:00 em Brasília).
+[functions."contratos"]
+  schedule = "0 11 * * *"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "same-origin"
+    X-Frame-Options = "DENY"
+
+[[headers]]
+  for = "/config.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[functions]
+  node_bundler = "esbuild"
